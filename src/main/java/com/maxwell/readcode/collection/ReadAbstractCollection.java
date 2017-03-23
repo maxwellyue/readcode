@@ -28,42 +28,28 @@ public abstract class ReadAbstractCollection <E> implements Collection<E> {
 
     // Query Operations
 
-    /**
-     * Returns an iterator over the elements contained in this collection.
-     *
-     * @return an iterator over the elements contained in this collection
-     */
+    //抽象方法：获取迭代器
     public abstract Iterator<E> iterator();
 
+    //抽象方法：获取大小
     public abstract int size();
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>This implementation returns <tt>size() == 0</tt>.
-     */
+    //判断是否为空
     public boolean isEmpty() {
         return size() == 0;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>This implementation iterates over the elements in the collection,
-     * checking each element in turn for equality with the specified element.
-     *
-     * @throws ClassCastException   {@inheritDoc}
-     * @throws NullPointerException {@inheritDoc}
-     */
+    //判断是否包含元素o：
+    //分两种情况：元素为空和元素不为空
     public boolean contains(Object o) {
-        Iterator<E> it = iterator();
-        if (o==null) {
-            while (it.hasNext())
-                if (it.next()==null)
+        Iterator<E> it = iterator();//获取迭代器
+        if (o==null) {//如果元素o为空
+            while (it.hasNext())//本次迭代还有元素
+                if (it.next()==null)//本次迭代的下一个元素为空
                     return true;
-        } else {
-            while (it.hasNext())
-                if (o.equals(it.next()))
+        } else {//如果元素o不为空
+            while (it.hasNext())//次迭代还有元素
+                if (o.equals(it.next()))//本次迭代的下一个元素与o相等
                     return true;
         }
         return false;
@@ -91,13 +77,14 @@ public abstract class ReadAbstractCollection <E> implements Collection<E> {
      * return list.toArray();
      * }</pre>
      */
+    //转换为数组
     public Object[] toArray() {
         // Estimate size of array; be prepared to see more or fewer elements
-        Object[] r = new Object[size()];
-        Iterator<E> it = iterator();
+        Object[] r = new Object[size()];//将数组的length设置为集合的size
+        Iterator<E> it = iterator();//获取集合的迭代器
         for (int i = 0; i < r.length; i++) {
             if (! it.hasNext()) // fewer elements than expected
-                return Arrays.copyOf(r, i);
+                return Arrays.copyOf(r, i);//
             r[i] = it.next();
         }
         return it.hasNext() ? finishToArray(r, it) : r;
@@ -278,24 +265,7 @@ public abstract class ReadAbstractCollection <E> implements Collection<E> {
         return true;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>This implementation iterates over the specified collection, and adds
-     * each object returned by the iterator to this collection, in turn.
-     *
-     * <p>Note that this implementation will throw an
-     * <tt>UnsupportedOperationException</tt> unless <tt>add</tt> is
-     * overridden (assuming the specified collection is non-empty).
-     *
-     * @throws UnsupportedOperationException {@inheritDoc}
-     * @throws ClassCastException            {@inheritDoc}
-     * @throws NullPointerException          {@inheritDoc}
-     * @throws IllegalArgumentException      {@inheritDoc}
-     * @throws IllegalStateException         {@inheritDoc}
-     *
-     * @see #add(Object)
-     */
+    //将c中的原有元素添加到当前集合中
     public boolean addAll(Collection<? extends E> c) {
         boolean modified = false;
         for (E e : c)
@@ -304,31 +274,11 @@ public abstract class ReadAbstractCollection <E> implements Collection<E> {
         return modified;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>This implementation iterates over this collection, checking each
-     * element returned by the iterator in turn to see if it's contained
-     * in the specified collection.  If it's so contained, it's removed from
-     * this collection with the iterator's <tt>remove</tt> method.
-     *
-     * <p>Note that this implementation will throw an
-     * <tt>UnsupportedOperationException</tt> if the iterator returned by the
-     * <tt>iterator</tt> method does not implement the <tt>remove</tt> method
-     * and this collection contains one or more elements in common with the
-     * specified collection.
-     *
-     * @throws UnsupportedOperationException {@inheritDoc}
-     * @throws ClassCastException            {@inheritDoc}
-     * @throws NullPointerException          {@inheritDoc}
-     *
-     * @see #remove(Object)
-     * @see #contains(Object)
-     */
+    //从当前集合中移除所有c中包含的元素
     public boolean removeAll(Collection<?> c) {
         boolean modified = false;
-        Iterator<?> it = iterator();
-        while (it.hasNext()) {
+        Iterator<?> it = iterator();//当前集合的迭代器（而非c的迭代器）
+        while (it.hasNext()) {//迭代器还有可以访问的元素
             if (c.contains(it.next())) {
                 it.remove();
                 modified = true;
@@ -337,31 +287,12 @@ public abstract class ReadAbstractCollection <E> implements Collection<E> {
         return modified;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>This implementation iterates over this collection, checking each
-     * element returned by the iterator in turn to see if it's contained
-     * in the specified collection.  If it's not so contained, it's removed
-     * from this collection with the iterator's <tt>remove</tt> method.
-     *
-     * <p>Note that this implementation will throw an
-     * <tt>UnsupportedOperationException</tt> if the iterator returned by the
-     * <tt>iterator</tt> method does not implement the <tt>remove</tt> method
-     * and this collection contains one or more elements not present in the
-     * specified collection.
-     *
-     * @throws UnsupportedOperationException {@inheritDoc}
-     * @throws ClassCastException            {@inheritDoc}
-     * @throws NullPointerException          {@inheritDoc}
-     *
-     * @see #remove(Object)
-     * @see #contains(Object)
-     */
+
+    //保留c中的元素，其余元素都移除
     public boolean retainAll(Collection<?> c) {
         boolean modified = false;
-        Iterator<E> it = iterator();
-        while (it.hasNext()) {
+        Iterator<E> it = iterator();//当前集合的迭代器（而非c的迭代器）
+        while (it.hasNext()) {//迭代器还有可以访问的元素
             if (!c.contains(it.next())) {
                 it.remove();
                 modified = true;
@@ -370,50 +301,27 @@ public abstract class ReadAbstractCollection <E> implements Collection<E> {
         return modified;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>This implementation iterates over this collection, removing each
-     * element using the <tt>Iterator.remove</tt> operation.  Most
-     * implementations will probably choose to override this method for
-     * efficiency.
-     *
-     * <p>Note that this implementation will throw an
-     * <tt>UnsupportedOperationException</tt> if the iterator returned by this
-     * collection's <tt>iterator</tt> method does not implement the
-     * <tt>remove</tt> method and this collection is non-empty.
-     *
-     * @throws UnsupportedOperationException {@inheritDoc}
-     */
+
+    //清空元素
     public void clear() {
         Iterator<E> it = iterator();
-        while (it.hasNext()) {
-            it.next();
-            it.remove();
+        while (it.hasNext()) {//是否有可访问的元素
+            it.next();//迭代器指向某个元素，假如为a
+            it.remove();//将a移除
         }
     }
 
 
-    //  String conversion
 
-    /**
-     * Returns a string representation of this collection.  The string
-     * representation consists of a list of the collection's elements in the
-     * order they are returned by its iterator, enclosed in square brackets
-     * (<tt>"[]"</tt>).  Adjacent elements are separated by the characters
-     * <tt>", "</tt> (comma and space).  Elements are converted to strings as
-     * by {@link String#valueOf(Object)}.
-     *
-     * @return a string representation of this collection
-     */
+    //将集合转换为字符串
     public String toString() {
         Iterator<E> it = iterator();
         if (! it.hasNext())
-            return "[]";
+            return "[]";// 如果是空集合，返回  "[]"
 
         StringBuilder sb = new StringBuilder();
         sb.append('[');
-        for (;;) {
+        for (;;) {//对集合遍历
             E e = it.next();
             sb.append(e == this ? "(this Collection)" : e);
             if (! it.hasNext())
