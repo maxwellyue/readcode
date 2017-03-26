@@ -11,12 +11,12 @@ import java.util.*;
  * 修改人：
  *************************************************************************************/
 public class Read {
-    List<String> stringList = new ArrayList<String>();
 
     Collection collection = null;
-    Queue queue = null;
     AbstractCollection abstractCollection = null;
+    List list= null;
     Set set = null;
+    Queue queue = null;
 
 
 
