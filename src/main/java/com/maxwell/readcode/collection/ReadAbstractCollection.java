@@ -68,55 +68,51 @@ public abstract class ReadAbstractCollection <E> implements Collection<E> {
      * called only as an optimization hint; the correct result is returned
      * even if the iterator returns a different number of elements.
      *
-     * <p>This method is equivalent to:
      *
-     *  <pre> {@code
+     *
+     */
+    public Object[] toArray() {
+        Object[] r = new Object[size()];               //1
+        Iterator<E> it = iterator();                   //2
+        for (int i = 0; i < r.length; i++) {           //3
+            if (! it.hasNext())                        //4
+                return Arrays.copyOf(r, i);            //5
+            r[i] = it.next();                          //6
+        }                                              //7
+        return it.hasNext() ? finishToArray(r, it) : r;//8
+    }
+    /**
+     *
+     * 该方法是将集合转换为一个数组，该数组包含了所有当前集合的迭代器返回的元素，按照迭代器返回的顺序，元素被
+     * 从位置0开始，连续地依次存放在数组中。该数组的长度等于当前迭代器返回的元素的个数，即使当前集合在迭代过程中
+     * 被修改（迭代过程中进行并发操作，如增加或移除元素等）。即使迭代器返回不同数量的元素，也可以返回正确的结果。
+     *
+     * 该方法等同于：
      * List<E> list = new ArrayList<E>(size());
      * for (E e : this)
      *     list.add(e);
      * return list.toArray();
-     * }</pre>
+     * }
+     *
+     * 正常思路是:取出集合中所有元素，依次放在数组中就可以了，如下：
+     *
+     *  Object[] r = new Object[size()];
+     *  Iterator<E> it = iterator();
+     *  for (int i = 0; i < r.length; i++) {
+     *      if (it.hasNext()){
+     *          r[i] = it.next();
+     *      }
+     *   }
+     *  return r;
+     *
+     * 但是，在允许并发操作的时候，如果你在一个线程A进行迭代操作，而在另一个线程B对操作的集合进行了添加/移除元素的操作，就会出问题。
+     * 对于元素减少的情况，通过4和5来进行处理：如果元素数量比预期少，则减少数组分配空间
+     * 对于元素增多的情况，通过8中finishToArray()进行处理：如果元素数量比预期多，则重新分配数组空间，策略是newLength = originLength + 1/2  originLength + 1,
+     * 但是如果在迭代结束后，在线程B中继续修改了当前集合，该方法返回的结果仍然是不准确的，所以说是线程不安全的。
+     *
      */
-    //转换为数组
-    public Object[] toArray() {
-        // Estimate size of array; be prepared to see more or fewer elements
-        Object[] r = new Object[size()];//将数组的length设置为集合的size
-        Iterator<E> it = iterator();//获取集合的迭代器
-        for (int i = 0; i < r.length; i++) {
-            if (! it.hasNext()) // fewer elements than expected
-                return Arrays.copyOf(r, i);//
-            r[i] = it.next();
-        }
-        return it.hasNext() ? finishToArray(r, it) : r;
-    }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>This implementation returns an array containing all the elements
-     * returned by this collection's iterator in the same order, stored in
-     * consecutive elements of the array, starting with index {@code 0}.
-     * If the number of elements returned by the iterator is too large to
-     * fit into the specified array, then the elements are returned in a
-     * newly allocated array with length equal to the number of elements
-     * returned by the iterator, even if the size of this collection
-     * changes during iteration, as might happen if the collection permits
-     * concurrent modification during iteration.  The {@code size} method is
-     * called only as an optimization hint; the correct result is returned
-     * even if the iterator returns a different number of elements.
-     *
-     * <p>This method is equivalent to:
-     *
-     *  <pre> {@code
-     * List<E> list = new ArrayList<E>(size());
-     * for (E e : this)
-     *     list.add(e);
-     * return list.toArray(a);
-     * }</pre>
-     *
-     * @throws ArrayStoreException  {@inheritDoc}
-     * @throws NullPointerException {@inheritDoc}
-     */
+
     public <T> T[] toArray(T[] a) {
         // Estimate size of array; be prepared to see more or fewer elements
         int size = size();
@@ -145,34 +141,25 @@ public abstract class ReadAbstractCollection <E> implements Collection<E> {
         return it.hasNext() ? finishToArray(r, it) : r;
     }
 
-    /**
-     * The maximum size of array to allocate.
-     * Some VMs reserve some header words in an array.
-     * Attempts to allocate larger arrays may result in
-     * OutOfMemoryError: Requested array size exceeds VM limit
-     */
+    //定义最大数组大小
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
     /**
-     * Reallocates the array being used within toArray when the iterator
-     * returned more elements than expected, and finishes filling it from
-     * the iterator.
-     *
-     * @param r the array, replete with previously stored elements
-     * @param it the in-progress iterator over this collection
-     * @return array containing the elements in the given array, plus any
-     *         further elements returned by the iterator, trimmed to size
+     *当迭代器返回元素比预期返回元素多，重新分配数组
+     * @param r 存储之前元素的数组
+     * @param it 当前迭代器
+     * @return  数组：原数组的所有元素 + 迭代器返回的多余的元素
      */
     private static <T> T[] finishToArray(T[] r, Iterator<?> it) {
-        int i = r.length;
-        while (it.hasNext()) {
-            int cap = r.length;
-            if (i == cap) {
-                int newCap = cap + (cap >> 1) + 1;
-                // overflow-conscious code
-                if (newCap - MAX_ARRAY_SIZE > 0)
+        int i = r.length;//定义i为数组的大小
+        while (it.hasNext()) {//当迭代器可以返回更多元素
+            int cap = r.length;//定义cap为数组的大小
+            if (i == cap) {//如果i=cap
+                int newCap = cap + (cap >> 1) + 1;//定义newCap = cap + 1/2 cap + 1
+                // 这两句代码是为了防止数组大小太大，对数组的大小进行了处理
+                if (newCap - MAX_ARRAY_SIZE > 0)//如果newCap大于MAX_ARRAY_SIZE
                     newCap = hugeCapacity(cap + 1);
-                r = Arrays.copyOf(r, newCap);
+                r = Arrays.copyOf(r, newCap);//将r中的元素copy到一个大小为newCap的新数组中
             }
             r[i++] = (T)it.next();
         }
@@ -180,6 +167,7 @@ public abstract class ReadAbstractCollection <E> implements Collection<E> {
         return (i == r.length) ? r : Arrays.copyOf(r, i);
     }
 
+    //获取容量
     private static int hugeCapacity(int minCapacity) {
         if (minCapacity < 0) // overflow
             throw new OutOfMemoryError
@@ -191,48 +179,22 @@ public abstract class ReadAbstractCollection <E> implements Collection<E> {
 
     // Modification Operations
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>This implementation always throws an
-     * <tt>UnsupportedOperationException</tt>.
-     *
-     * @throws UnsupportedOperationException {@inheritDoc}
-     * @throws ClassCastException            {@inheritDoc}
-     * @throws NullPointerException          {@inheritDoc}
-     * @throws IllegalArgumentException      {@inheritDoc}
-     * @throws IllegalStateException         {@inheritDoc}
-     */
+    //添加元素（实现在哪？）
     public boolean add(E e) {
         throw new UnsupportedOperationException();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>This implementation iterates over the collection looking for the
-     * specified element.  If it finds the element, it removes the element
-     * from the collection using the iterator's remove method.
-     *
-     * <p>Note that this implementation throws an
-     * <tt>UnsupportedOperationException</tt> if the iterator returned by this
-     * collection's iterator method does not implement the <tt>remove</tt>
-     * method and this collection contains the specified object.
-     *
-     * @throws UnsupportedOperationException {@inheritDoc}
-     * @throws ClassCastException            {@inheritDoc}
-     * @throws NullPointerException          {@inheritDoc}
-     */
+    //移除元素
     public boolean remove(Object o) {
         Iterator<E> it = iterator();
-        if (o==null) {
+        if (o==null) {//o为空的情况
             while (it.hasNext()) {
                 if (it.next()==null) {
                     it.remove();
                     return true;
                 }
             }
-        } else {
+        } else {//o不为空的情况
             while (it.hasNext()) {
                 if (o.equals(it.next())) {
                     it.remove();
@@ -244,20 +206,8 @@ public abstract class ReadAbstractCollection <E> implements Collection<E> {
     }
 
 
-    // Bulk Operations
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>This implementation iterates over the specified collection,
-     * checking each element returned by the iterator in turn to see
-     * if it's contained in this collection.  If all elements are so
-     * contained <tt>true</tt> is returned, otherwise <tt>false</tt>.
-     *
-     * @throws ClassCastException            {@inheritDoc}
-     * @throws NullPointerException          {@inheritDoc}
-     * @see #contains(Object)
-     */
+    //添加c中所有元素到当前集合中
     public boolean containsAll(Collection<?> c) {
         for (Object e : c)
             if (!contains(e))

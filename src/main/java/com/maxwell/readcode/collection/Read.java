@@ -16,6 +16,7 @@ public class Read {
     Collection collection = null;
     Queue queue = null;
     AbstractCollection abstractCollection = null;
+    Set set = null;
 
 
 
