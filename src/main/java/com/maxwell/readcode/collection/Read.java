@@ -17,7 +17,8 @@ public class Read {
     List list= null;
     Set set = null;
     Queue queue = null;
-
+    AbstractList abstractList = null;
+    ArrayList arrayList = null;
 
 
 
