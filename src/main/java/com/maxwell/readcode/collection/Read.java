@@ -1,5 +1,6 @@
 package com.maxwell.readcode.collection;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 /************************************************************************************
@@ -19,6 +20,7 @@ public class Read {
     Queue queue = null;
     AbstractList abstractList = null;
     ArrayList arrayList = null;
+    Array array;
 
     public static void main(String[] args){
         List<String> list = new ArrayList<String>();
